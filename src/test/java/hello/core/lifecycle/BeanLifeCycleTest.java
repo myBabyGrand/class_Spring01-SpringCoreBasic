@@ -20,6 +20,8 @@ public class BeanLifeCycleTest {
     @Configuration
     static class LifeCycleConfig{
 
+//        @Bean(initMethod =  "init", destroyMethod = "close")
+//        @Bean(initMethod =  "init")
         @Bean
         public NetworkClient networkClient(){
             NetworkClient networkClient = new NetworkClient();
