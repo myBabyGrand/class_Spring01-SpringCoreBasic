@@ -2,6 +2,7 @@ package hello.core.scope;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Scope;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.inject.Provider;
 
 import static org.assertj.core.api.Assertions.*;
 
@@ -30,17 +32,24 @@ public class SingletoneWithPrototypeTest1 {
     void singletonClientUsePrototype(){
         AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext(PrototypeBean.class, ClientBean.class);
         ClientBean clientBean1 = ac.getBean(ClientBean.class);
-
         int count1 = clientBean1.logic();
         assertThat(count1).isEqualTo(1);
 
         ClientBean clientBean2 = ac.getBean(ClientBean.class);
         int count2 = clientBean2.logic();
-        assertThat(count2).isEqualTo(2);
+        assertThat(count2).isEqualTo(2);//singleton
 
         ClientBean clientBean3 = ac.getBean(ClientBean.class);
         int count3 = clientBean3.logic2();
         assertThat(count3).isEqualTo(1);
+
+        ClientBean clientBean4 = ac.getBean(ClientBean.class);
+        int count4 = clientBean4.logic_DL();
+        assertThat(count4).isEqualTo(1);
+
+        ClientBean clientBean5 = ac.getBean(ClientBean.class);
+        int count5 = clientBean5.logic_javaxInject();
+        assertThat(count5).isEqualTo(1);
     }
 
     @Scope("singleton")
@@ -51,17 +60,37 @@ public class SingletoneWithPrototypeTest1 {
         public ClientBean(PrototypeBean prototypeBean){
             this.prototypeBean = prototypeBean;
         }
-
         public int logic(){
             prototypeBean.addCount();
             return prototypeBean.getCount();
         }
+
 
         @Autowired
         ApplicationContext applicationContext;
 
         public int logic2(){//메소드 내에서 프로토 타입으로 새로 생성
             PrototypeBean prototypeBean = applicationContext.getBean(PrototypeBean.class);
+            prototypeBean.addCount();
+            return prototypeBean.getCount();
+        }
+
+        ///DL
+        @Autowired
+        private ObjectProvider<PrototypeBean> prototypeBeanObjectProvider;
+
+        public int logic_DL(){
+            PrototypeBean prototypeBean = prototypeBeanObjectProvider.getObject();
+            prototypeBean.addCount();
+            return prototypeBean.getCount();
+        }
+
+        //javax.inject
+        @Autowired
+        private Provider<PrototypeBean> provider;
+
+        public int logic_javaxInject(){
+            PrototypeBean prototypeBean = provider.get();
             prototypeBean.addCount();
             return prototypeBean.getCount();
         }
@@ -80,6 +109,7 @@ public class SingletoneWithPrototypeTest1 {
         @PostConstruct
         public void init(){
             System.out.println(Thread.currentThread().getStackTrace()[1].getClassName()+"."+Thread.currentThread().getStackTrace()[1].getMethodName());
+            System.out.println(this);
         }
         @PreDestroy
         public void destory(){
